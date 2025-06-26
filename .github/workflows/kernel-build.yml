@@ -3,33 +3,35 @@ name: Kernel Build
 on:
   push:
     branches:
-      - '**'   # Triggers on any branch
-  workflow_dispatch:  # Optional: allows manual trigger
+      - '**'           # Trigger on any branch
+  workflow_dispatch:    # Allow manual runs
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # LTS, stable, compatible with older tooling
+    name: Build Escrima Kernel
+    runs-on: ubuntu-22.04
     timeout-minutes: 120
 
     steps:
-    - name: 📥 Checkout Kernel Source
+    - name: 🧾 Checkout Kernel Source
       uses: actions/checkout@v4
 
-    - name: 🧰 Install Dependencies
+    - name: ⚙️ Install Required Packages
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          bc bison build-essential ccache curl flex git libssl-dev \
-          libncurses5-dev libncursesw5-dev libelf-dev \
-          python3 unzip wget xz-utils zip \
-          zstd libxml2-utils rsync lz4 \
-          device-tree-compiler software-properties-common
+        sudo apt update
+        sudo apt install -y \
+          git zip curl wget \
+          gcc g++ clang \
+          libssl-dev bc bison flex \
+          libelf-dev libncurses5-dev \
+          libxml2-utils libstdc++-dev \
+          software-properties-common
 
     - name: 🐍 Manually Install Python2 (Legacy)
       run: |
         sudo add-apt-repository ppa:deadsnakes/ppa -y
-        sudo apt-get update
-        sudo apt-get install -y python2
+        sudo apt update
+        sudo apt install -y python2
         sudo ln -sf /usr/bin/python2 /usr/bin/python
 
     - name: 🧪 Prepare Paths and Workspace
@@ -39,13 +41,14 @@ jobs:
         mkdir -p AnyKernel3
         mkdir -p output
 
-    - name: 🔧 Build Kernel using build.sh
+    - name: 🏗️ Build Kernel
       run: |
-        bash build.sh
+        chmod +x build.sh
+        ./build.sh
 
-    - name: 📤 Upload Flashable Kernel Zip
+    - name: 📦 Upload Flashable Zip
       if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: Escrima-Kernel
+        name: Escrima-Kernel-${{ github.ref_name }}
         path: AnyKernel3/*.zip
