@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Kernel build script for Android arm64
-# Cleaned and adapted for GitHub Actions & local usage
+# Cleaned, CI-compatible, assumes AnyKernel3 is present in repo
 
 msg() {
     echo -e "\e[1;32m$*\e[0m"
@@ -29,7 +29,7 @@ SILENCE=0
 ZIPNAME="Escrima-$VERSION"
 DATE=$(TZ=Asia/Kolkata date +"%Y%m%d-%H%M%S")
 
-# Default toolchain & output paths
+# Output & Toolchain Paths
 TC_DIR="$HOME/clang-llvm"
 UFDT_DIR="$HOME/scripts/ufdt/libufdt"
 OUT_DIR="$KERNEL_DIR/out"
@@ -38,18 +38,18 @@ AK3_DIR="$KERNEL_DIR/AnyKernel3"
 clone() {
     echo " "
     if [ "$COMPILER" = "clang" ]; then
-        msg "|| Cloning Proton Clang ||"
-        git clone --depth=1 https://github.com/kdrag0n/proton-clang.git "$TC_DIR"
+        msg "🔧 Cloning Proton Clang"
+        git clone --depth=1 -q https://github.com/kdrag0n/proton-clang.git "$TC_DIR"
     else
-        msg "|| Cloning GCC toolchains ||"
-        git clone --depth=1 https://github.com/arter97/arm64-gcc.git gcc64
-        git clone --depth=1 https://github.com/arter97/arm32-gcc.git gcc32
+        msg "🔧 Cloning GCC toolchains"
+        git clone --depth=1 -q https://github.com/arter97/arm64-gcc.git gcc64
+        git clone --depth=1 -q https://github.com/arter97/arm32-gcc.git gcc32
         GCC64_DIR=$KERNEL_DIR/gcc64
         GCC32_DIR=$KERNEL_DIR/gcc32
     fi
 
-    msg "|| Cloning libufdt ||"
-    git clone https://android.googlesource.com/platform/system/libufdt "$UFDT_DIR"
+    msg "📦 Cloning libufdt"
+    git clone --depth=1 -q https://android.googlesource.com/platform/system/libufdt "$UFDT_DIR"
 }
 
 exports() {
@@ -72,17 +72,17 @@ exports() {
 
 build_kernel() {
     [ "$INCREMENTAL" = 0 ] && {
-        msg "|| Cleaning Sources ||"
+        msg "🧹 Cleaning Sources"
         make clean && make mrproper
         rm -rf "$OUT_DIR" "$AK3_DIR/Image" "$AK3_DIR"/*.zip
     }
 
-    make O=out "$DEFCONFIG"
+    make O="$OUT_DIR" "$DEFCONFIG"
 
     if [ "$DEF_REG" = 1 ]; then
         cp .config arch/arm64/configs/"$DEFCONFIG"
         git add arch/arm64/configs/"$DEFCONFIG"
-        git commit -m "$DEFCONFIG: Regenerate — auto-generated"
+        git diff --quiet || git commit -m "$DEFCONFIG: Regenerate — auto-generated"
     fi
 
     BUILD_START=$(date +%s)
@@ -112,18 +112,16 @@ build_kernel() {
 
     [ "$SILENCE" = "1" ] && MAKE_ARGS+=(-s)
 
-    msg "|| Starting Compilation ||"
-    make -j"$PROCS" O=out "${MAKE_ARGS[@]}" 2>&1
+    msg "🛠️  Starting Compilation"
+    make -j"$PROCS" O="$OUT_DIR" "${MAKE_ARGS[@]}" 2>&1
 
     if [ -f "$OUT_DIR/arch/arm64/boot/Image" ]; then
-        msg "|| Kernel compiled successfully ||"
+        msg "✅ Kernel compiled successfully"
 
         if [ "$BUILD_DTBO" = 1 ]; then
-            msg "|| Building DTBO ||"
-
+            msg "📦 Building DTBO"
             DTBO_SOURCE="$OUT_DIR/arch/arm64/boot/dts/vendor/qcom/avicii-overlay-dvt.dtbo"
             DTBO_OUTPUT="$OUT_DIR/arch/arm64/boot/dtbo.img"
-
             PYTHON=$(command -v python2 || command -v python3)
 
             "$PYTHON" "$UFDT_DIR/utils/src/mkdtboimg.py" create "$DTBO_OUTPUT" \
@@ -137,7 +135,7 @@ build_kernel() {
 }
 
 gen_zip() {
-    msg "|| Creating flashable zip ||"
+    msg "📦 Creating flashable zip"
     cp "$OUT_DIR/arch/arm64/boot/Image" "$AK3_DIR/"
     [ -f "$OUT_DIR/arch/arm64/boot/dtbo.img" ] && cp "$OUT_DIR/arch/arm64/boot/dtbo.img" "$AK3_DIR/"
 
@@ -148,7 +146,7 @@ gen_zip() {
     msg "✅ Flashable zip created at: $AK3_DIR/$ZIPNAME-$DEVICE-$DATE.zip"
 }
 
-# Run
+# Run build
 clone
 exports
 build_kernel
@@ -156,3 +154,5 @@ build_kernel
 BUILD_END=$(date +%s)
 DIFF=$((BUILD_END - BUILD_START))
 echo -e "$green Build completed in $((DIFF / 60)) minute(s) and $((DIFF % 60)) second(s).$default"
+
+exit 0
