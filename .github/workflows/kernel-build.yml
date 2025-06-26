@@ -34,12 +34,11 @@ jobs:
         sudo apt install -y python2
         sudo ln -sf /usr/bin/python2 /usr/bin/python
 
-    - name: 🧪 Prepare Paths and Workspace
+    - name: 🧪 Prepare Workspace Paths
       run: |
         mkdir -p $HOME/scripts/ufdt/libufdt
         mkdir -p $HOME/clang-llvm
-        mkdir -p AnyKernel3
-        mkdir -p output
+        mkdir -p out
 
     - name: 🏗️ Build Kernel
       run: |
