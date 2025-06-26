@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # LTS, stable, compatible with older tooling
     timeout-minutes: 120
 
     steps:
@@ -22,25 +22,29 @@ jobs:
         sudo apt-get install -y \
           bc bison build-essential ccache curl flex git libssl-dev \
           libncurses5-dev libncursesw5-dev libelf-dev \
-          python2 python3 unzip wget xz-utils zip \
-          zstd libxml2-utils rsync lz4 device-tree-compiler
+          python3 unzip wget xz-utils zip \
+          zstd libxml2-utils rsync lz4 \
+          device-tree-compiler software-properties-common
 
-    - name: 🧪 Fix Python2 symlink
+    - name: 🐍 Manually Install Python2 (Legacy)
       run: |
-        sudo ln -sf python2 /usr/bin/python
+        sudo add-apt-repository ppa:deadsnakes/ppa -y
+        sudo apt-get update
+        sudo apt-get install -y python2
+        sudo ln -sf /usr/bin/python2 /usr/bin/python
 
-    - name: 📦 Prepare Output Directories
+    - name: 🧪 Prepare Paths and Workspace
       run: |
         mkdir -p $HOME/scripts/ufdt/libufdt
         mkdir -p $HOME/clang-llvm
         mkdir -p AnyKernel3
         mkdir -p output
 
-    - name: 🧱 Build Kernel
+    - name: 🔧 Build Kernel using build.sh
       run: |
         bash build.sh
 
-    - name: 📤 Upload Kernel Zip
+    - name: 📤 Upload Flashable Kernel Zip
       if: success()
       uses: actions/upload-artifact@v4
       with:
