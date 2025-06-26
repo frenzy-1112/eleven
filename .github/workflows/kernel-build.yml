@@ -1,0 +1,48 @@
+name: Kernel Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+    - name: 📥 Checkout Kernel Source
+      uses: actions/checkout@v4
+
+    - name: 🧰 Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          bc bison build-essential ccache curl flex git libssl-dev \
+          libncurses5-dev libncursesw5-dev libelf-dev \
+          python2 python3 unzip wget xz-utils zip \
+          zstd libxml2-utils rsync lz4 device-tree-compiler
+
+    - name: 🧪 Fix Python2 symlink
+      run: |
+        sudo ln -sf python2 /usr/bin/python
+
+    - name: 📦 Prepare Output Directories
+      run: |
+        mkdir -p $HOME/scripts/ufdt/libufdt
+        mkdir -p $HOME/clang-llvm
+        mkdir -p AnyKernel3
+        mkdir -p output
+
+    - name: 🧱 Build Kernel
+      run: |
+        bash build.sh
+
+    - name: 📤 Upload Kernel Zip
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Escrima-Kernel
+        path: AnyKernel3/*.zip
