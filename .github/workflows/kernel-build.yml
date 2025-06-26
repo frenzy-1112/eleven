@@ -3,8 +3,8 @@ name: Kernel Build
 on:
   push:
     branches:
-      - '**'           # Trigger on any branch
-  workflow_dispatch:    # Allow manual runs
+      - '**'              # Trigger on any branch
+  workflow_dispatch:       # Allow manual run from GitHub UI
 
 jobs:
   build:
@@ -24,8 +24,8 @@ jobs:
           gcc g++ clang \
           libssl-dev bc bison flex \
           libelf-dev libncurses5-dev \
-          libxml2-utils libstdc++-dev \
-          software-properties-common
+          libxml2-utils software-properties-common \
+          libstdc++-11-dev
 
     - name: 🐍 Manually Install Python2 (Legacy)
       run: |
