@@ -12,6 +12,11 @@ jobs:
           sudo apt-get update
           sudo apt-get -y install mkisofs git python2 bc cpio python3 python-is-python3 device-tree-compiler
 
+      - name: Force python to point to python2
+        run: |
+          sudo ln -sf /usr/bin/python2 /usr/bin/python
+          python --version
+
       - name: Clone Your Kernel Source
         run: |
           cd ~
