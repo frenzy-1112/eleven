@@ -8,9 +8,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Install packages
-         run: |
-            sudo apt-get update
-            sudo apt-get -y install mkisofs git python2 bc cpio python3 python-is-python3 device-tree-compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install mkisofs git python2 bc cpio python3 python-is-python3 device-tree-compiler
 
       - name: Clone Your Kernel Source
         run: |
