@@ -1,60 +1,40 @@
-name: Kernel Build
+# bld.yml
+name: Build Flashable Kernel
 
 on:
-  push:
-    branches:
-      - '**'
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build Escrima Kernel
+  NSK_CI:
     runs-on: ubuntu-22.04
-    timeout-minutes: 120
-
     steps:
-    - name: 🧾 Checkout Kernel Source
-      uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git bc cpio python3 python-is-python3 \
+            device-tree-compiler zip curl
 
-    - name: ⚙️ Install Required Packages
-      run: |
-        sudo apt update
-        sudo apt install -y \
-          git zip curl wget \
-          gcc g++ clang \
-          libssl-dev bc bison flex \
-          libelf-dev libncurses5-dev \
-          libxml2-utils software-properties-common \
-          libstdc++-11-dev
+      - name: Clone Kernel Source
+        run: |
+          cd ~
+          git clone --depth=1 https://github.com/sreeshankark/android_kernel_oneplus_avicii --recursive kernel
 
-    - name: 🐍 Manually Install Python2 (Legacy)
-      run: |
-        sudo add-apt-repository ppa:deadsnakes/ppa -y
-        sudo apt update
-        sudo apt install -y python2
-        sudo ln -sf /usr/bin/python2 /usr/bin/python
+      - name: Setup Clang Toolchain
+        run: |
+          cd ~
+          curl -sL https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz > clang.tar.gz
+          mkdir clang && tar -xvf clang.tar.gz -C clang
+          mkdir -p kernel/clang-llvm
+          mv clang/* kernel/clang-llvm/
+          rm -rf clang clang.tar.gz
 
-    - name: 🧪 Prepare Workspace
-      run: |
-        mkdir -p $HOME/scripts/ufdt/libufdt
-        mkdir -p $HOME/clang-llvm
-        mkdir -p out
+      - name: Build Kernel
+        run: |
+          cd ~/kernel
+          python3 build.py
 
-    - name: 🏗️ Build Kernel
-      run: |
-        chmod +x build.sh
-        ./build.sh
-
-    - name: 📦 Upload Flashable Zip
-      if: success()
-      uses: actions/upload-artifact@v4
-      with:
-        name: Escrima-Kernel-${{ github.ref_name }}
-        path: AnyKernel3/*.zip
-
-    - name: 📄 Upload build.log on Failure
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-log-${{ github.run_id }}
-        path: build.log
+      - name: Upload Flashable Kernel ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flashable-Kernel
+          path: ~/FlashableKernel.zip
