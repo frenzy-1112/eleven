@@ -16,10 +16,10 @@ zip_name = "FlashableKernel.zip"
 # Set environment variables
 os.environ["ARCH"] = "arm64"
 os.environ["SUBARCH"] = "arm64"
-os.environ["CONFIG_FILE"] = "avicii_defconfig debugfs.config"
+os.environ["CONFIG_FILE"] = "avicii_defconfig"
 os.environ["CCACHE"] = subprocess.getoutput("command -v ccache")
 os.environ["PATH"] = f"{clang_path}:{os.environ['PATH']}"
-os.environ["CC"] = "ccache clang"
+os.environ["CC"] = f"python {kernel_dir}/scripts/gcc-wrapper.py clang"
 os.environ["CLANG_TRIPLE"] = "aarch64-linux-gnu-"
 os.environ["CROSS_COMPILE"] = "aarch64-linux-gnu-"
 os.environ["CROSS_COMPILE_ARM32"] = "arm-linux-gnueabi-"
@@ -35,11 +35,13 @@ def run_command(cmd, cwd=None):
 def make_defconfig():
     print("[*] Generating defconfig...")
     run_command(f"make O=out {os.environ['CONFIG_FILE']}")
+    run_command("scripts/kconfig/merge_config.sh -m out/.config debugfs.config")
+    run_command("make O=out olddefconfig")
 
 def compile_kernel():
     print("[*] Compiling the kernel...")
     run_command(f"make O=out -j$(nproc) 2>&1 | tee error.log")
-    run_command(f"python3 {avbtool} add_hash_footer --image {DTBOIMAGE} --partition_size 25165824 --partition_name dtbo")
+    run_command(f"python {avbtool} add_hash_footer --image {DTBOIMAGE} --partition_size 25165824 --partition_name dtbo")
 
 def package_kernel():
     print("[*] Packaging kernel into flashable ZIP...")
