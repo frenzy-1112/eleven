@@ -29,20 +29,20 @@ os.environ["LLVM_IAS"] = "1"
 def run_command(cmd, cwd=None):
     result = subprocess.run(cmd, shell=True, cwd=cwd)
     if result.returncode != 0:
-        print(f"[\u274c] Failed: {cmd}")
+        print(f"[X] Failed: {cmd}")
         sys.exit(1)
 
 def make_defconfig():
-    print("[\ud83d\udd27] Generating defconfig...")
+    print("[*] Generating defconfig...")
     run_command(f"make O=out {os.environ['CONFIG_FILE']}")
 
 def compile_kernel():
-    print("[\u2699\ufe0f ] Compiling the kernel...")
+    print("[*] Compiling the kernel...")
     run_command(f"make O=out -j$(nproc) 2>&1 | tee error.log")
     run_command(f"python3 {avbtool} add_hash_footer --image {DTBOIMAGE} --partition_size 25165824 --partition_name dtbo")
 
 def package_kernel():
-    print("[\ud83d\udcc6] Packaging kernel into flashable ZIP...")
+    print("[*] Packaging kernel into flashable ZIP...")
     if os.path.isfile(ZIMAGE) and os.path.isfile(DTBOIMAGE):
         os.makedirs(kf, exist_ok=True)
         subprocess.run(f"cp {ZIMAGE} {DTBOIMAGE} {kf}", shell=True)
@@ -50,9 +50,9 @@ def package_kernel():
         subprocess.run("find . -name '*.zip' -delete", shell=True)
         subprocess.run(f"zip -r9 {zip_name} * -x .git README.md *.zip", shell=True)
         subprocess.run(f"mv {zip_name} $HOME/{zip_name}", shell=True)
-        print(f"[\u2705] Flashable ZIP created at: $HOME/{zip_name}")
+        print(f"[OK] Flashable ZIP created at: $HOME/{zip_name}")
     else:
-        print("[\u274c] Missing kernel or dtbo image.")
+        print("[X] Missing kernel or dtbo image.")
         sys.exit(1)
 
 make_defconfig()
